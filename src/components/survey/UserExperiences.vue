@@ -5,12 +5,15 @@
       <div>
         <base-button @click='loadExperiences'>Load Submitted Experiences</base-button>
       </div>
-      <ul>
+      <p v-if='isLoading'>Loading ...</p>
+      <p v-else-if='!isLoading && error'>{{ error }}</p>
+      <p v-else-if='!isLoading && (!results || results.length === 0)'>No experiences submitted so far!</p>
+      <ul v-else>
         <survey-result
-          v-for="result in results"
-          :key="result.id"
-          :name="result.name"
-          :rating="result.rating"
+          v-for='result in results'
+          :key='result.id'
+          :name='result.name'
+          :rating='result.rating'
         ></survey-result>
       </ul>
     </base-card>
@@ -22,26 +25,44 @@ import SurveyResult from './SurveyResult.vue';
 
 export default {
   components: {
-    SurveyResult,
+    SurveyResult
   },
   data() {
     return {
       results: [],
+      isLoading: false,
+      error: null
     };
   },
   methods: {
     loadExperiences() {
-      fetch('https://vue-http-demo-fa50b-default-rtdb.europe-west1.firebasedatabase.app/surveys.json').then(function(response) {
+      this.isLoading = true;
+      this.error = null;
+      fetch('https://vue-http-demo-fa50b-default-rtdb.europe-west1.firebasedatabase.app/surveys').then((response) => {
         if (response.ok) {
           return response.json();
         }
-      }).then(function(data) {
+      }).then((data) => {
+        this.isLoading = false;
         const results = [];
         for (const id in data) {
-          results.id
+          results.push({
+            id: id,
+            name: data[id].name,
+            rating: data[id].rating
+          });
         }
-      });
-    },
+        this.results = results;
+      })
+        .catch((error) => {
+          this.isLoading = false;
+          console.log(error);
+          this.error = 'Failed to fetch data.Please try again later.'
+        });
+    }
+  },
+  mounted() {
+    this.loadExperiences();
   }
 };
 </script>
